@@ -270,3 +270,17 @@ sphinx-rtd-theme==1.0.0
 # Changes: https://github.com/Pylons/webtest/blob/master/CHANGELOG.rst
 # Docs: https://docs.pylonsproject.org/projects/webtest/en/latest/
 WebTest==3.0.0
+
+# for animation of waiting
+tqdm==4.67.1
+
+# for rest apis
+fastapi==0.128.0
+uvicorn==0.40.0
+
+# for websocks
+websockets==16.0
+
+# for data visualisations
+streamlit==1.52.2
+streamlit-folium==0.26.1

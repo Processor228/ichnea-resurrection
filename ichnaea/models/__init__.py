@@ -30,6 +30,7 @@ from ichnaea.models.observation import (
     Report,
     WifiObservation,
     WifiReport,
+    SubmittedReport
 )
 from ichnaea.models.station import station_blocked
 from ichnaea.models.wifi import WifiShard

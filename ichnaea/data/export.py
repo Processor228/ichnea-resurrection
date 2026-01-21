@@ -5,6 +5,8 @@ import time
 from urllib.parse import urlparse
 import uuid
 
+import logging
+
 import boto3
 import boto3.exceptions
 import botocore.exceptions
@@ -30,6 +32,7 @@ from ichnaea.models import (
     WifiObservation,
     WifiReport,
     WifiShard,
+    SubmittedReport
 )
 from ichnaea.models.content import encode_datamap_grid
 from ichnaea import util
@@ -38,6 +41,8 @@ from ichnaea import util
 WHITESPACE = re.compile(r"\s", flags=re.UNICODE)
 
 METRICS = markus.get_metrics()
+
+LOGGER = logging.getLogger(__name__)
 
 
 class IncomingQueue(object):
@@ -59,6 +64,20 @@ class IncomingQueue(object):
         redis_client = self.task.redis_client
         data_queue = self.task.app.data_queues["update_incoming"]
         data = data_queue.dequeue()
+
+        LOGGER.info("Storing the observation")
+        with self.task.db_session() as session:
+            for item in data:
+                report = SubmittedReport(
+                    api_key=item["api_key"],
+                    source=item.get("source", "gnss"),
+                    report=json.dumps(item["report"]),
+                    lat=item["report"].get("position", {}).get("latitude"),
+                    lon=item["report"].get("position", {}).get("longitude")
+                )
+                session.add(report)
+            session.commit()
+            LOGGER.info(f"Stored the observation: {data}")
 
         grouped = defaultdict(list)
         for item in data:

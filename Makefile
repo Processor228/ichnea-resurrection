@@ -130,6 +130,10 @@ lintfix: my.env .docker-build
 run: my.env .docker-build
 	${DC} up web
 
+.PHONY: visual
+visual: my.env .docker-build
+	${DC} up visual
+
 .PHONY: runcelery
 runcelery: my.env .docker-build
 	${DC} up scheduler worker

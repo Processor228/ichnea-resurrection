@@ -2,6 +2,17 @@ import math
 import operator
 
 import colander
+from sqlalchemy import (
+    Column,
+    DateTime,
+    String,
+    Text,
+    PrimaryKeyConstraint,
+    Index,
+    Float,
+    func
+)
+from sqlalchemy.dialects.mysql import BIGINT as BigInteger
 
 from ichnaea.geocode import GEOCODER
 from ichnaea.models import Radio, ReportSource
@@ -9,7 +20,7 @@ from ichnaea.models.base import CreationMixin, ValidationMixin
 from ichnaea.models.blue import BlueShard
 from ichnaea.models.cell import CellShard, encode_cellid, ValidCellKeySchema
 from ichnaea.models import constants
-from ichnaea.models.base import HashableDict
+from ichnaea.models.base import HashableDict, _Model
 from ichnaea.models.mac import channel_frequency, MacNode
 from ichnaea.models.schema import (
     DefaultNode,
@@ -532,3 +543,30 @@ class WifiObservation(WifiReport, Report, BaseObservation):
         # Maps -100: ~0.5, -80: 1.0, -60: 2.4, -30: 16, -10: ~123
         signal_weight = ((1.0 / (signal - 20.0) ** 2) * 10000) ** 2
         return signal_weight * self.base_weight
+
+
+class SubmittedReport(CreationMixin, _Model):
+    """Model to store all submitted reports before processing."""
+
+    __tablename__ = "submitted_report"
+
+    _indices = (
+        PrimaryKeyConstraint("id"),
+        Index("submitted_report_created_idx", "created"),
+        Index("submitted_report_api_key_idx", "api_key"),
+    )
+
+    def __init__(self, **kwargs):
+        for key in kwargs:
+            if not hasattr(self.__class__, key):
+                raise TypeError(f"Invalid attribute: {key}")
+            setattr(self, key, kwargs[key])
+
+    id = Column(BigInteger(unsigned=True), autoincrement=True)
+
+    api_key = Column(String(40))
+    lat = Column(Float)
+    lon = Column(Float)
+    source = Column(String(20))
+    report = Column(Text)  # JSON string of the report
+    created = Column(DateTime, default=func.now())
