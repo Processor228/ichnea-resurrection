@@ -16,7 +16,7 @@
         "jquery": "~3.6.4",
         "jquery-flot": "~0.8",
         "mapbox-gl": "~1.13.3",
-        "uglify-js": "~3.17"
+        "uglify-js": "~3.19"
       }
     },
     "node_modules/@babel/code-frame": {
@@ -1804,9 +1804,9 @@
       }
     },
     "node_modules/uglify-js": {
-      "version": "3.17.4",
-      "resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.17.4.tgz",
-      "integrity": "sha512-T9q82TJI9e/C1TAxYvfb16xO120tMVFZrGA3f9/P4424DNu6ypK103y0GPFVa17yotwSyZW5iYXgjYHkGrJW/g==",
+      "version": "3.19.3",
+      "resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.19.3.tgz",
+      "integrity": "sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ==",
       "dev": true,
       "bin": {
         "uglifyjs": "bin/uglifyjs"
@@ -3259,9 +3259,9 @@
       "dev": true
     },
     "uglify-js": {
-      "version": "3.17.4",
-      "resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.17.4.tgz",
-      "integrity": "sha512-T9q82TJI9e/C1TAxYvfb16xO120tMVFZrGA3f9/P4424DNu6ypK103y0GPFVa17yotwSyZW5iYXgjYHkGrJW/g==",
+      "version": "3.19.3",
+      "resolved": "https://registry.npmjs.org/uglify-js/-/uglify-js-3.19.3.tgz",
+      "integrity": "sha512-v3Xu+yuwBXisp6QYTcH4UbH+xYJXqnq2m/LtQVWKWzYc1iehYnLixoQDN9FH6/j9/oybfd6W9Ghwkl8+UMKTKQ==",
       "dev": true
     },
     "validate-npm-package-license": {

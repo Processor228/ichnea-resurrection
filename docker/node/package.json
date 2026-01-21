@@ -15,6 +15,6 @@
     "jquery": "~3.6.4",
     "jquery-flot": "~0.8",
     "mapbox-gl": "~1.13.3",
-    "uglify-js": "~3.17"
+    "uglify-js": "~3.19"
   }
 }
