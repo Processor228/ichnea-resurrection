@@ -11,6 +11,30 @@ services:
     volumes:
       - .:/app
 
+  visual-service:
+    image: local/ichnaea_app
+    env_file:
+      - docker/config/local_dev.env
+      - my.env
+    volumes:
+      - .:/app
+    ports:
+      - "8841:8080"
+    command: ["visual-service"]
+
+  visual:
+    depends_on:
+      - visual-service
+    image: local/ichnaea_app
+    env_file:
+      - docker/config/local_dev.env
+      - my.env
+    volumes:
+      - .:/app
+    ports:
+      - "8501:8501"
+    command: ["visual"]
+
   web:
     image: local/ichnaea_app
     env_file:

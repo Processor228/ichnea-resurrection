@@ -10,6 +10,14 @@ case "${SERVICE}" in
         echo "Starting Web Server"
         exec ./run_web.sh
         ;;
+    visual-service)
+        echo "Starting a visualisation service"
+        exec ./run_visualisation_service.sh
+        ;;
+    visual)
+        echo "Starting a visualisation web app"
+        exec ./run_visualisation_app.sh
+        ;;
     scheduler)
         echo "Starting Celery Scheduler"
         exec ./run_scheduler.sh
