@@ -326,9 +326,9 @@ datadog==0.45.0 \
     --hash=sha256:144fce48bda79484b102349f159c4ea4c7cd35361f9e0d031ddf931a922a38a4 \
     --hash=sha256:6bffed67448cb4bf5dff559fb2acee1c06e7da8612b8e2a734f278b50b396603
     # via markus
-dockerflow==2022.8.0 \
-    --hash=sha256:cebd5e12ff08be43b02ea4fcaf044fb2cd4cec63c93dbfbe6e3c5b610849924c \
-    --hash=sha256:fcb95ea8226551e1fd03c3c82f2b11de50434ddfa63cebc164399dabf5c78908
+dockerflow==2026.1.26 \
+    --hash=sha256:26f02d8842672921b2a49f1e019fac54ed2ee69dc673ed80f7b237b67394c2be \
+    --hash=sha256:c45667ec078944a468b9a634c866587b4cf31559d0e6f369fbadd21edce66b38
     # via -r requirements.in
 docutils==0.17.1 \
     --hash=sha256:686577d2e4c32380bb50cbb22f575ed742d58168cee37e99117a854bcd88f125 \
@@ -1182,7 +1182,9 @@ shapely[vectorized]==1.8.5.post1 \
     --hash=sha256:e9c30b311de2513555ab02464ebb76115d242842b29c412f5a9aa0cac57be9f6 \
     --hash=sha256:ec14ceca36f67cb48b34d02d7f65a9acae15cd72b48e303531893ba4a960f3ea \
     --hash=sha256:ef3be705c3eac282a28058e6c6e5503419b250f482320df2172abcbea642c831
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   shapely
 simple-pid==1.0.1 \
     --hash=sha256:60d6b3a7c3f19734d33bbc5938293c4924d7cfea74176def03306057b3f99524 \
     --hash=sha256:99254d8f9a630062264ce4842ef1e90443558f336697268d16b9de52d3baec0b
