@@ -162,13 +162,13 @@ black==22.10.0 \
     --hash=sha256:f513588da599943e0cde4e32cc9879e825d58720d6557062d1098c5ad80080e1 \
     --hash=sha256:fba8a281e570adafb79f7755ac8721b6cf1bbf691186a287e990c7929c7692ff
     # via -r requirements.in
-boto3==1.28.19 \
-    --hash=sha256:1bae3e6222c7272af44ab4dc456fc4cb7d2d7044489b7a4a08f9cd0fbad6d213 \
-    --hash=sha256:8630c2c38c3130e31e1a4182943aee8bc7dd1a1ad9729092b46fdbc8ac045a77
+boto3==1.42.39 \
+    --hash=sha256:d03f82363314759eff7f84a27b9e6428125f89d8119e4588e8c2c1d79892c956 \
+    --hash=sha256:d9d6ce11df309707b490d2f5f785b761cfddfd6d1f665385b78c9d8ed097184b
     # via -r requirements.in
-botocore==1.31.19 \
-    --hash=sha256:15f269945f319b0263cde9a61a25f2c9a83f6074b62cddae71edafec4a61e637 \
-    --hash=sha256:724f9a1a91f88291f5adc6347705a31e52312c88cddd56e38709215b161e025a
+botocore==1.42.39 \
+    --hash=sha256:0f00355050821e91a5fe6d932f7bf220f337249b752899e3e4cf6ed54326249e \
+    --hash=sha256:9e0d0fed9226449cc26fcf2bbffc0392ac698dd8378e8395ce54f3ec13f81d58
     # via
     #   boto3
     #   s3transfer
@@ -1038,9 +1038,9 @@ rtree==1.0.1 \
     --hash=sha256:e898d7409ab645c25e06d4e058f99271182601d70b2887aba3351bf08e09a0c6 \
     --hash=sha256:f5120da3a1b96f3a7a17dd6af0afdd4e6f3cc9baa87e9ee0a272882f01f980bb
     # via -r requirements.in
-s3transfer==0.6.0 \
-    --hash=sha256:06176b74f3a15f61f1b4f25a1fc29a4429040b7647133a463da8fa5bd28d5ecd \
-    --hash=sha256:2ed07d3866f523cc561bf4a00fc5535827981b117dd7876f036b0c1aca42c947
+s3transfer==0.16.0 \
+    --hash=sha256:18e25d66fed509e3868dc1572b3f427ff947dd2c56f844a5bf09481ad3f3b2fe \
+    --hash=sha256:8e990f13268025792229cd52fa10cb7163744bf56e719e0b9cb925ab79abf920
     # via boto3
 scipy==1.10.1 \
     --hash=sha256:049a8bbf0ad95277ffba9b3b7d23e5369cc39e66406d60422c8cfef40ccc8415 \
@@ -1182,7 +1182,9 @@ shapely[vectorized]==1.8.5.post1 \
     --hash=sha256:e9c30b311de2513555ab02464ebb76115d242842b29c412f5a9aa0cac57be9f6 \
     --hash=sha256:ec14ceca36f67cb48b34d02d7f65a9acae15cd72b48e303531893ba4a960f3ea \
     --hash=sha256:ef3be705c3eac282a28058e6c6e5503419b250f482320df2172abcbea642c831
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   shapely
 simple-pid==1.0.1 \
     --hash=sha256:60d6b3a7c3f19734d33bbc5938293c4924d7cfea74176def03306057b3f99524 \
     --hash=sha256:99254d8f9a630062264ce4842ef1e90443558f336697268d16b9de52d3baec0b
