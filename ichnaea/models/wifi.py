@@ -8,11 +8,19 @@ class ValidWifiShardSchema(ValidMacStationSchema):
     """A schema which validates the fields in a WiFi shard."""
 
 
+class _LazyObservationTable:
+    def __get__(self, instance, owner):
+        from ichnaea.models.observation import StoredWifiObservation
+        return StoredWifiObservation
+
+
 class WifiShard(MacStationMixin):
     """WiFi shard."""
 
     _shards = WIFI_SHARDS
     _valid_schema = ValidWifiShardSchema()
+
+    __observation_table__ = _LazyObservationTable()
 
 
 class WifiShard0(WifiShard, _Model):

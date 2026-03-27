@@ -18,9 +18,16 @@ from ichnaea.models import (
     StatCounter,
     StatKey,
 )
+from ichnaea.models.base import BaseModel
 from ichnaea.models.constants import BLUE_MAX_RADIUS, CELL_MAX_RADIUS, WIFI_MAX_RADIUS
 from ichnaea import util
+from ichnaea.data.source_estimation import pfilter, analytical
+from ichnaea.data.source_estimation.buildings import BuildingsSource
+from ichnaea.models.mac import decode_mac, encode_mac
+from ichnaea.models.observation import StoredWifiObservation
+from ichnaea.models.wifi import WifiShard, ValidMacStationSchema
 
+from sqlalchemy import insert
 
 METRICS = markus.get_metrics()
 
@@ -39,7 +46,9 @@ class StationState(object):
         self.now = now
         self.today = today
         self.one_year = today - timedelta(days=self.MAX_OLD_DAYS)
+        print("getting self.obs_data")
         self.obs_data = self.aggregate_obs()
+        print("here is self.obs_data:", self.obs_data)
 
     def base_key(self):
         raise NotImplementedError()
@@ -119,6 +128,7 @@ class StationState(object):
             ("disagree_old_position", "gnss_inconsistent"): self.block,
             ("disagree_old_position", "query_inconsistent"): self.block,
         }
+        print("Final transition is", (station_state, obs_state))
         return transitions.get((station_state, obs_state))
 
     def confirm_station_obs(self):
@@ -146,6 +156,7 @@ class StationState(object):
         return ("confirm", values)
 
     def block(self):
+        print("Blocking shite")
         # block and _change values need to have the exact same dict keys,
         # as they get combined into one bulk_update_mappings calls.
         values = self.submit_key()
@@ -366,6 +377,93 @@ class WifiState(MacState):
 
     MAX_DIST_METERS = WIFI_MAX_RADIUS
 
+    def _change(self, update=True):
+        # block and _change values need to have the exact same dict keys,
+        # as they get combined into one bulk_update_mappings calls.
+        data = self.obs_data
+        values = self.submit_key()
+        values.update(
+            {
+                "last_seen": self.today,
+                "modified": self.now,
+                "lat": data["lat"],
+                "lon": data["lon"],
+                "max_lat": data["max_lat"],
+                "min_lat": data["min_lat"],
+                "max_lon": data["max_lon"],
+                "min_lon": data["min_lon"],
+                "radius": data["radius"],
+                "region": data["region"],
+                "samples": data["samples"],
+                "source": self.source,
+                "weight": data["weight"],
+                "block_first": self.station.block_first,
+                "block_last": self.station.block_last,
+                "block_count": self.station.block_count,
+            }
+        )
+        return values
+
+    def estimate_station_position(self, measurements: list[tuple[float, float, int]]):
+        buildings = BuildingsSource().innopolis_buildings()
+
+        return analytical.RouterMLE(measurements, buildings).solve()
+
+    def aggregate_obs(self):
+        """This method computes station position based on just new observations.
+           This made sence, if the position is calculated the old way, when no
+           observations are stored in the db, and only the results of previous
+           calculations are stored. Now, we always store the observations, and
+           old and new observations combined are used while estimating a router
+           position. Thus, use same code for both scenarios: when station is
+           calculated the first time and not the first.
+        """
+        return self.aggregate_station_obs()
+
+    def aggregate_station_obs(self):
+        observations = self.observations
+
+        measurements = [(o.lat, o.lon, o.signal) for o in observations]
+
+        positions = numpy.array([
+            (lat, lon)
+            for lat, lon, _ in measurements
+        ])
+
+        max_lat, max_lon = numpy.nanmax(positions, axis=0)
+        min_lat, min_lon = numpy.nanmin(positions, axis=0)
+
+        lat, lon = self.estimate_station_position(measurements)
+
+        box_distance = distance(min_lat, min_lon, max_lat, max_lon)
+        if box_distance > self.MAX_DIST_METERS:
+            return None
+
+        radius = circle_radius(lat, lon, max_lat, max_lon, min_lat, min_lon)
+        region = GEOCODER.region(lat, lon)
+
+        weights_sum = \
+            numpy.array([obs.weight for obs in self.observations], dtype=numpy.double) \
+            .sum()
+
+        samples, weight = self.bounded_samples_weight(
+            len(measurements),
+            weights_sum,
+        )
+
+        return {
+            "lat": lat,
+            "lon": lon,
+            "max_lat": float(max_lat),
+            "min_lat": float(min_lat),
+            "max_lon": float(max_lon),
+            "min_lon": float(min_lon),
+            "radius": radius,
+            "region": region,
+            "samples": samples,
+            "weight": weight,
+        }
+
 
 class CellState(StationState):
 
@@ -444,15 +542,17 @@ class StationUpdater(object):
         stations = {}
 
         keys = list(shard_values.keys())
-        rows = self.query_shard(session, shard, keys)
+        rows: WifiShard = self.query_shard(session, shard, keys)
+        print("SO WHAT IS IN ROWS???", rows)
         for row in rows:
             unique_key = row.unique_key
+            print("station ", unique_key, row.lat, row.lon)
             stations[unique_key] = row
             blocklist[unique_key] = station_blocked(row, self.today)
 
         return (blocklist, stations)
 
-    def update_shard(self, session, shard, shard_values, stats_counter):
+    def update_shard(self, session, shard: BaseModel, shard_values: dict[str, WifiObservation], stats_counter):
         updated_areas = set()
         new_data = defaultdict(list)
         blocklist, stations = self.query_stations(session, shard, shard_values)
@@ -473,12 +573,16 @@ class StationUpdater(object):
                     # treat fused, fixed as gnss
                     grouped_obs[ReportSource.gnss].append(obs)
 
-            station = stations.get(station_key, None)
+            station: ValidMacStationSchema = stations.get(station_key, None)
             source = ReportSource.gnss
             if not grouped_obs[source]:
                 # Only query observations.
                 source = ReportSource.query
-
+            print("STATIONS", stations)
+            if station:
+                print("station before: ", station.lat, station.lon, station.last_seen)
+            if not station:
+                print("not found station with key", station_key)
             state = self.station_state(
                 station_key, station, source, grouped_obs[source], self.now, self.today
             )
@@ -530,10 +634,11 @@ class StationUpdater(object):
 
     def shard_observations(self, observations):
         sharded_obs = {}
-        for obs in observations:
-            obs = self.obs_model.from_json(obs)
+        for obs_unparsed in observations:
+            obs: WifiObservation = self.obs_model.from_json(obs_unparsed)
             if obs is not None:
                 if not obs.weight:
+                    print("filtered obs:", obs.weight, obs_unparsed)
                     # Filter out observations with too little weight.
                     continue
                 shard = obs.shard_model
@@ -597,6 +702,59 @@ class WifiUpdater(MacUpdater):
     station_type = "wifi"
     stat_obs_key = StatKey.wifi
     stat_station_key = StatKey.unique_wifi
+
+    def _combine_shard_obeservations(self, session, shard: WifiShard, shard_values: dict[str, list[WifiObservation]]):
+        """commit new observations into the database. Take already
+           submitted observations from db, and combine with
+           what's provided from the reddis pipe. """
+
+        values = []
+        for mac, obs in shard_values.items():
+            for o in obs:
+                values.append(o.to_storage())
+
+        result = session.execute(
+            insert(shard.__observation_table__),
+            values
+        )
+
+        session.commit()
+        print(result.rowcount)
+
+        rows: list[StoredWifiObservation] = session.query(shard.__observation_table__).all()
+
+        for row in rows:
+            print(row.mac, row.lat, row.lon, row.rssi)
+
+        macs = list(encode_mac(mac) for mac in shard_values.keys())
+
+        print(macs)
+        print([decode_mac(mac) for mac in macs])
+        rows = (
+            session.query(shard.__observation_table__)
+            .filter(shard.__observation_table__.mac.in_(macs))
+            .all()
+        )
+
+        result = defaultdict(list)
+        for row in rows:
+            result[decode_mac(row.mac)].append(row.to_internal())
+
+        return result
+
+    def update_observations(self, sharded_observations):
+        """Update the station data based on per-shard observations."""
+        stats = defaultdict(int)
+        updated_areas = set()
+
+        with self.task.db_session() as session:
+            for shard, shard_values in sharded_observations.items():
+                known_shard_values = self._combine_shard_obeservations(session, shard, shard_values)
+                print(known_shard_values)
+                areas = self.update_shard(session, shard, known_shard_values, stats)
+                updated_areas.update(areas)
+
+        return updated_areas, stats
 
 
 class CellUpdater(StationUpdater):
