@@ -407,7 +407,7 @@ class WifiState(MacState):
     def estimate_station_position(self, measurements: list[tuple[float, float, int]]):
         buildings = BuildingsSource().innopolis_buildings()
 
-        return analytical.RouterMLE(measurements, buildings).solve()
+        return analytical.MultipleStartsMLE(measurements, buildings).solve()
 
     def aggregate_obs(self):
         """This method computes station position based on just new observations.
