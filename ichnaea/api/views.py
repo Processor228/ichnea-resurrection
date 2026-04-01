@@ -95,7 +95,7 @@ class BaseAPIView(BaseView):
             if maxreq:
                 should_limit = limit_count > maxreq
                 log_params["rate_quota"] = maxreq
-                log_params["rate_remaining"] = max(0, maxreq - limit_count)
+                log_params["rate_remaining"] = max(0, maxreq - limit_count, None)
                 log_params["rate_allowed"] = not should_limit
             bind_contextvars(**log_params)
         except RedisError:
