@@ -24,7 +24,7 @@ NETWORK_DTYPE = numpy.dtype(
         ("signalStrength", numpy.int32),
         ("score", numpy.double),
         ("mac_b64", "S8"),
-        ("seen_today", numpy.bool),
+        ("seen_today", bool),
     ]
 )
 

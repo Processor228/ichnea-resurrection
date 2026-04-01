@@ -170,7 +170,7 @@ class BaseAPIView(BaseView):
 
                 # Potentially avoid overhead of Redis connection.
                 if self.ip_log_and_rate_limit:
-                    if self.log_ip_and_rate_limited(valid_key, api_key.maxreq):
+                    if self.log_ip_and_rate_limited(valid_key, None):
                         raise self.prepare_exception(DailyLimitExceeded())
             else:
                 self.log_count("invalid")

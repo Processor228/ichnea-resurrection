@@ -16,7 +16,7 @@ ifeq (1, ${NOCACHE})
 DOCKER_BUILD_OPTS := --no-cache
 endif
 
-DC := $(shell which docker-compose)
+DC := docker compose
 
 .PHONY: help
 help: default
