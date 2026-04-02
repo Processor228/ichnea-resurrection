@@ -74,10 +74,13 @@ class TransmitterOut(BaseModel):
     lat: float
     lon: float
     bssid: str
+    weight: float
 
     @classmethod
     def from_orm(cls, obj):
-        return cls(lat=obj.lat, lon=obj.lon, bssid=obj.mac)
+        return cls(lat=obj.lat, lon=obj.lon, bssid=obj.mac, weight=obj.weight)
+
+
 
 
 # -------------------------
