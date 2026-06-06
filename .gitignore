@@ -10,6 +10,7 @@ ichnaea/content/static/datamap/quadtrees/
 ichnaea/content/static/datamap/shapes/
 ichnaea/content/static/datamap/tiles/
 
+.venv/
 my.env
 .docker-build
 .vscode/
