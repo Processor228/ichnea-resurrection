@@ -9,8 +9,10 @@ from sqlalchemy import (
     Text,
     PrimaryKeyConstraint,
     Index,
+    Integer,
     Float,
-    func
+    func,
+    Binary
 )
 from sqlalchemy.dialects.mysql import BIGINT as BigInteger
 
@@ -21,7 +23,7 @@ from ichnaea.models.blue import BlueShard
 from ichnaea.models.cell import CellShard, encode_cellid, ValidCellKeySchema
 from ichnaea.models import constants
 from ichnaea.models.base import HashableDict, _Model
-from ichnaea.models.mac import channel_frequency, MacNode
+from ichnaea.models.mac import channel_frequency, MacNode, decode_mac, encode_mac
 from ichnaea.models.schema import (
     DefaultNode,
     ReportSourceNode,
@@ -543,6 +545,61 @@ class WifiObservation(WifiReport, Report, BaseObservation):
         # Maps -100: ~0.5, -80: 1.0, -60: 2.4, -30: 16, -10: ~123
         signal_weight = ((1.0 / (signal - 20.0) ** 2) * 10000) ** 2
         return signal_weight * self.base_weight
+
+    def to_storage(self) -> "StoredWifiObservation":
+        return {
+            "mac": encode_mac(self.mac),
+            "lat": self.lat,
+            "lon": self.lon,
+            "rssi": self.signal,
+            "source": self.source,
+            "speed": self.speed,
+            "age": self.age,
+            "accuracy": self.accuracy,
+        }
+
+
+class StoredWifiObservation(CreationMixin, _Model):
+
+    __tablename__ = "wifi_observations"
+
+    _indices = (
+        PrimaryKeyConstraint("id"),
+        Index("submitted_report_created_idx", "created")
+    )
+
+    _fields = ("mac", "lat", "lon", "rssi", "source", "speed", "age", "accuracy")
+
+    def __init__(self, **kwargs):
+        for key in kwargs:
+            if not hasattr(self.__class__, key):
+                raise TypeError(f"Invalid attribute: {key}")
+            setattr(self, key, kwargs[key])
+
+    def to_internal(self) -> WifiObservation:
+        return WifiObservation(
+            mac=decode_mac(self.mac),
+            lat=self.lat,
+            lon=self.lon,
+            signal=self.rssi,
+            source=self.source,
+            speed=self.speed,
+            age=self.age,
+            accuracy=self.accuracy,
+        )
+
+    id = Column(BigInteger(unsigned=True), autoincrement=True)
+
+    lat = Column(Float)
+    lon = Column(Float)
+    rssi = Column(Integer)
+    source = Column(String(20))
+    mac = Column(Binary(6))
+    speed = Column(Float)
+    age = Column(Integer)
+    accuracy = Column(Float)
+
+    created = Column(DateTime, default=func.now())
 
 
 class SubmittedReport(CreationMixin, _Model):

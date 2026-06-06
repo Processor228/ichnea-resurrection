@@ -68,6 +68,9 @@ class IncomingQueue(object):
         LOGGER.info("Storing the observation")
         with self.task.db_session() as session:
             for item in data:
+                if item['report'] is None or item['report']['position'] is None:
+                    continue
+
                 report = SubmittedReport(
                     api_key=item["api_key"],
                     source=item.get("source", "gnss"),

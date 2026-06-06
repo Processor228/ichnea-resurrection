@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Script that sets up the docker environment to run the tests in and runs the
 # tests.
@@ -12,7 +12,7 @@ set -v -e -x
 # running
 PS4="+ (test_env.sh): "
 
-DC="$(which docker-compose)"
+DC="docker compose"
 ICHNAEA_UID=${ICHNAEA_UID:-"10001"}
 ICHNAEA_GID=${ICHNAEA_GID:-"10001"}
 ICHNAEA_DOCKER_DB_ENGINE=${ICHNAEA_DOCKER_DB_ENGINE:-"mysql_5_7"}

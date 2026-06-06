@@ -29,6 +29,7 @@ from ichnaea.models.observation import (
     CellReport,
     Report,
     WifiObservation,
+    StoredWifiObservation,
     WifiReport,
     SubmittedReport
 )

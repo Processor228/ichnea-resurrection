@@ -7,18 +7,23 @@ import math
 
 import numpy
 from scipy.cluster import hierarchy
-from scipy.optimize import leastsq
+from scipy.optimize import leastsq, least_squares
 from sqlalchemy import select
+import numpy as np
 
 from geocalc import distance
 from ichnaea.api.locate.score import station_score
 from ichnaea.models import decode_mac, encode_mac, station_blocked
 from ichnaea import util
+from scipy.optimize import minimize
+from pyproj import CRS, Transformer
 
 NETWORK_DTYPE = numpy.dtype(
     [
         ("lat", numpy.double),
         ("lon", numpy.double),
+        ("n", numpy.double),
+        ("A", numpy.double),
         ("radius", numpy.double),
         ("age", numpy.int32),
         ("signalStrength", numpy.int32),
@@ -52,10 +57,12 @@ def cluster_networks(
             (
                 model.lat,
                 model.lon,
+                model.n,
+                model.A,
                 model.radius or min_radius,
                 obs_data[model.mac][0],
                 obs_data[model.mac][1],
-                station_score(model, now),
+                model.weight,
                 encode_mac(model.mac, codec="base64"),
                 bool(model.last_seen is not None and model.last_seen >= today),
             )
@@ -112,20 +119,22 @@ def cluster_networks(
     return clusters
 
 
-def aggregate_mac_position(networks, minimum_accuracy):
-    # Idea based on https://gis.stackexchange.com/questions/40660
+def rssi_to_distance(rssi: int, A: float, n: float) -> float:
+    return 10 ** ((A - rssi) / (10.0 * n))
 
-    def func(point, points):
-        return numpy.array(
-            [
-                distance(p["lat"], p["lon"], point[0], point[1])
-                * min(math.sqrt(2000.0 / p["age"]), 1.0)
-                / math.pow(p["signalStrength"], 2)
-                for p in points
-            ]
-        )
 
-    # Guess initial position as the weighted mean over all networks.
+def prepare_accurary_estimation(lat, lon, networks, minimum_acc):
+    # Guess the accuracy as the 95th percentile of the distances
+    # from the lat/lon to the positions of all networks.
+    distances = numpy.array(
+        [distance(lat, lon, net["lat"], net["lon"]) for net in networks],
+        dtype=numpy.double,
+    )
+    accuracy = max(numpy.percentile(distances, 95), minimum_acc)
+    return accuracy
+
+
+def aggregate_mac_position(networks, minimum_accuracy) -> tuple[float, float, float]:
     points = numpy.array(
         [(net["lat"], net["lon"]) for net in networks], dtype=numpy.double
     )
@@ -141,24 +150,70 @@ def aggregate_mac_position(networks, minimum_accuracy):
     )
 
     initial = numpy.average(points, axis=0, weights=weights)
+    lat0, lon0 = initial[0], initial[1]
 
-    (lat, lon), cov_x, info, mesg, ier = leastsq(
-        func, initial, args=networks, full_output=True
+    local_crs = CRS.from_proj4(
+        f"+proj=aeqd +lat_0={lat0} +lon_0={lon0} +datum=WGS84 +units=m +no_defs"
+    )
+    wgs84 = CRS.from_epsg(4326)
+
+    to_xy = Transformer.from_crs(wgs84, local_crs, always_xy=True)
+    to_ll = Transformer.from_crs(local_crs, wgs84, always_xy=True)
+
+    x0, y0 = to_xy.transform(lon0, lat0)
+
+    processed_networks = []
+    # any_good_signal = False
+    for net in networks:
+        try:
+            if not np.isfinite(net['A']) or not np.isfinite(net['n']):
+                continue
+
+            x, y = to_xy.transform(net['lon'], net['lat'])
+            rssi = net['signalStrength']
+
+            dist = rssi_to_distance(rssi, net['A'], net['n'])
+
+            processed_networks.append({
+                'x': x,
+                'y': y,
+                'dist': dist,
+                'rssi': rssi
+            })
+
+        except Exception:
+            continue
+
+    def residuals(p: np.ndarray) -> np.ndarray:
+        px, py = p
+        res = []
+
+        for u in processed_networks:
+            dx = px - u["x"]
+            dy = py - u["y"]
+
+            geom_dist = math.hypot(dx, dy)
+            model_residual = geom_dist - u["dist"]
+
+            res.append(model_residual)
+        return np.array(res)
+
+    result = least_squares(
+        residuals,
+        x0=np.array([x0, y0]),
+        loss="soft_l1",
+        f_scale=8.0,
+        max_nfev=500,
     )
 
-    if ier not in (1, 2, 3, 4):
-        # No solution found, use initial estimate.
-        lat, lon = initial
+    if not result.success or result.cost > 200:
+        px, py = x0, y0
+    else:
+        px, py = result.x
 
-    # Guess the accuracy as the 95th percentile of the distances
-    # from the lat/lon to the positions of all networks.
-    distances = numpy.array(
-        [distance(lat, lon, net["lat"], net["lon"]) for net in networks],
-        dtype=numpy.double,
-    )
-    accuracy = max(numpy.percentile(distances, 95), minimum_accuracy)
+    lon, lat = to_ll.transform(px, py)
 
-    return (float(lat), float(lon), float(accuracy))
+    return lat, lon, prepare_accurary_estimation(lat, lon, networks, minimum_accuracy)
 
 
 def aggregate_cluster_position(
@@ -202,6 +257,9 @@ def query_macs(query, lookups, raven_client, db_model):
         "mac",
         "lat",
         "lon",
+        "A",
+        "n",
+        "weight",
         "radius",
         "region",
         "samples",

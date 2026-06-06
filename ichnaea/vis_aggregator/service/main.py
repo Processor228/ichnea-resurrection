@@ -81,8 +81,6 @@ class TransmitterOut(BaseModel):
         return cls(lat=obj.lat, lon=obj.lon, bssid=obj.mac, weight=obj.weight)
 
 
-
-
 # -------------------------
 # Helpers
 # -------------------------
