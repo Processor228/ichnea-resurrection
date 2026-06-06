@@ -25,6 +25,10 @@ from ichnaea.models import WifiShard
 from ichnaea.models.constants import MIN_WIFI_SIGNAL
 from ichnaea import util
 
+from time import perf_counter
+
+file_perf = open("/app/perf_data", 'a')
+
 
 class WifiPositionMixin(object):
     """
@@ -40,6 +44,7 @@ class WifiPositionMixin(object):
         return bool(query.wifi)
 
     def search_wifi(self, query):
+        start = perf_counter()
         results = self.result_list()
 
         wifis = query_macs(query, query.wifi, self.raven_client, WifiShard)
@@ -60,6 +65,9 @@ class WifiPositionMixin(object):
             )
             results.add(result)
 
+        elapsed = perf_counter() - start
+        file_perf.write(f"user pos: {elapsed:.6f} sec\n")
+        file_perf.flush()
         return results
 
 

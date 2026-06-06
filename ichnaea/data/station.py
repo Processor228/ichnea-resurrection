@@ -20,7 +20,9 @@ from ichnaea.models import (
 )
 from ichnaea.models.constants import BLUE_MAX_RADIUS, CELL_MAX_RADIUS, WIFI_MAX_RADIUS
 from ichnaea import util
+from time import perf_counter
 
+file_perf = open("/app/transmitter_perf_data", "a")
 
 METRICS = markus.get_metrics()
 
@@ -453,13 +455,17 @@ class StationUpdater(object):
         return (blocklist, stations)
 
     def update_shard(self, session, shard, shard_values, stats_counter):
+        start = perf_counter()
         updated_areas = set()
         new_data = defaultdict(list)
         blocklist, stations = self.query_stations(session, shard, shard_values)
 
+        obs_cnt = 0
+
         for station_key, observations in shard_values.items():
             # Count all observations.
             stats_counter["obs"] += len(observations)
+            obs_cnt += len(observations)
 
             if blocklist.get(station_key, False):
                 # Drop observations for blocklisted stations.
@@ -526,6 +532,9 @@ class StationUpdater(object):
         if new_data["confirm"]:
             session.bulk_update_mappings(shard, new_data["confirm"])
 
+        elapsed = perf_counter() - start
+        file_perf.write(f"update_shard: {elapsed:.6f} sec, {len(new_data['new'])} new routers routers, observations {obs_cnt}\n")
+        file_perf.flush()
         return updated_areas
 
     def shard_observations(self, observations):
